@@ -1,0 +1,157 @@
+# Time Clock Software Specification Document
+
+## Overview
+
+The Time Clock system will be designed to manage and track the working hours of employees using RFID technology. A local application will read RFID chip IDs from a USB-connected reader and record the entry and exit times for each user. An admin interface will be available for managing users and viewing reports.
+
+---
+
+## System Requirements
+
+- **"keyboard wedge" RFID reader.:** USB-connected device capable of reading RFID chips and typing the ID.
+- **Workstations:** PCs running Docker to host the application.
+- **RFID Chips:** Unique identification for each user, with a specific chip designated for the admin.
+
+---
+
+## Architecture
+
+### Components
+
+- **RFID Reader Service:** Intercepts the RFID chip ID input and sends it to the application.
+- **Application Backend:** Handles business logic, user authentication, time-tracking, and data persistence.
+- **Database:** Stores user information, RFID chip IDs, and time entry records.
+- **Admin Interface:** Web-based interface for administrative tasks.
+
+### Technology Stack
+
+- **Docker:** To containerize the application and ensure a consistent environment across workstations.
+- **Backend Application:** Written in Node.js.
+- **Database:** SQLite, for simplicity and local storage without the need for a complex DBMS.
+- **Frontend:** A basic React application for the admin UI.
+
+---
+
+## Detailed Design
+
+### RFID Reader Input Handling (Script or Background Process)
+
+With a keyboard wedge RFID reader, the application must be capable of capturing keyboard input (tag ID) globally, as it will be input as keystrokes. This functionality may be achieved with a dedicated script or background process.
+
+#### Input Capture Script (Python, Node.js or Relevant Platform)
+
+```python
+import sys
+from pynput.keyboard import Listener
+
+def on_press(key):
+    try:
+        tagId = str(key.char)
+        process_tag_id(tagId + "\n")
+    except AttributeError:
+        # Handle special case for potential non-alphanumeric keys
+        pass
+
+def process_tag_id(tagId):
+    # Function to handle a full tagId sequence ending with Enter
+    if "\n" in tagId:
+        print(f"Tag ID Detected: {tagId}")
+        # TODO: Logic to handle the received tag ID
+
+# Listener to capture keypress events
+with Listener(on_press=on_press) as listener:
+    listener.join()
+```
+
+### Backend Application (Node.js/Express)
+
+#### API Endpoints
+
+- `/api/time_entry/:tagId` - POST to log the entrance/exit of a user.
+- `/api/user` - POST to add a new user (admin only).
+- `/api/user/:id` - PUT to edit user details (admin only).
+
+#### Models
+
+- `User`: `{ id, name, rfidTag, createdAt }`
+- `TimeEntry`: `{ id, userId, timeStamp, type (entry/exit) }`
+
+**Database (SQLite)**
+
+- Users Table: Store employee information and associated RFID tag.
+- Time Entries Table: Log timestamps for user check-ins and check-outs.
+
+### Admin Interface (React)
+
+- **Homepage:** Displays welcome message and total hours for the current month.
+- **User Management:** Form to add/edit users linked to RFID tags.
+- **Reporting:** Generate and view a summary of hours per month.
+
+---
+
+## Development Process
+
+### Step 1: Environment Setup
+
+1. Install Docker and Docker Compose on all workstations.
+2. Set up a basic Docker Compose file.
+
+```yaml
+version: '3'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+```
+
+### Step 2: Backend Application
+
+1. Initialize a Node.js project with package.json.
+2. Set up Express and define the required API endpoints.
+3. Implement controller logic for handling RFID data and user management.
+4. Set up the SQLite database with the necessary tables.
+
+### Step 3: RFID Reader Service
+
+1. Develop a script that interfaces with the RFID reader hardware.
+2. Send read RFID chip ID to the backend using HTTP requests.
+
+### Step 4: Admin Interface
+
+1. Create a new Angular application.
+2. Develop the login screen and authentication flow for admin users.
+3. Build user management UI components and integrate with the backend API.
+4. Design and implement the reporting interface.
+
+### Step 5: Testing
+
+1. Test each component in isolation (Unit Tests).
+2. Test the interaction between components (Integration Tests).
+3. Perform end-to-end system testing, including the RFID reader interaction.
+
+### Step 6: Deployment
+
+1. Containerize the backend and the admin interface within Docker.
+2. Use Docker Compose to deploy the system on all workstations.
+3. Ensure RFID reader devices are properly installed and configured on each workstation.
+
+### Step 7: Maintenance
+
+- Provide documentation for the system.
+- Outline procedures for common tasks such as adding/updating users and generating reports.
+- Establish a support channel for dealing with issues or questions related to the system.
+
+---
+
+## Security Considerations
+
+- Enforce proper permission checks to ensure only the admin can manage users.
+- Secure API endpoints using authentication tokens.
+
+## Backup and Recovery
+
+- Regularly back up the SQLite database to prevent data loss.
+- Document the recovery process in case of hardware failure or data corruption.

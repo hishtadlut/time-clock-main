@@ -1,0 +1,6 @@
+[submodule "app"]
+	path = app
+	url = https://github.com/hishtadlut/time-clock-server.git
+[submodule "admin-interface"]
+	path = admin-interface
+	url = https://github.com/hishtadlut/time-clock-ui.git
